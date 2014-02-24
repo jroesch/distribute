@@ -20,6 +20,10 @@ library
   -- exposed-modules:     
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.6 && <4.7
-  -- hs-source-dirs:      
+  build-depends:
+    base >= 4.6 && < 4.7,
+    cereal,
+    pipes,
+    pipes-network
+  hs-source-dirs:      src/
   default-language:    Haskell2010
