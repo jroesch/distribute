@@ -174,8 +174,12 @@ registerIncoming (pid, Registry ref) p = do
       return ()
     _ -> error "expected control message found something else"
 
-    {- do
-      start 1 3000 registerProcess
-      broadcast v
-      results <- receiveAll
-      synchronize -}
+broadcast :: (Serialize a) => a -> Distribute a ()
+broadcast v = do
+    (_, Registry ref) <- S.get
+    reg <- lift $ readIORef ref
+    lift $ mapM_ sendEach (M.elems reg)
+  where sendEach p = write p (Value v)
+
+receiveAll :: (Serialize a) => Distribute a [a]
+receiveAll = undefined

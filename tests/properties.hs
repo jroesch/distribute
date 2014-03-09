@@ -63,7 +63,6 @@ test_open = HU.testCase "open should connect to a running process" test
           lift $ H.assertEqual "should read 2" two (2 :: Int)
           lift $ H.assertEqual "should read 3" three (3 :: Int)
 
-
 {- test_receive_message =
     HU.testCase "should be able to read a message from a speicific process" $ do
       emptyRegistry >>= evalStateT $ do
