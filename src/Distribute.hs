@@ -38,6 +38,14 @@ instance Show (Process a) where
 
 data Registry a = Registry (IORef (M.Map Int (Process (DistributeMessage a))))
 
+{- As a lens? processes :: Lens' (Registry a) (Process (DistributeMessage a))
+processes f (Registry ) -}
+
+processes :: Registry a -> IO [Process (DistributeMessage a)]
+processes (Registry ref) = do
+    m <- readIORef ref
+    return $ M.elems m
+  
 type Distribute a = S.StateT (PID, Registry a) IO
 
 data DistributeMessage a = Value a
