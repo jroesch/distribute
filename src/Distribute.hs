@@ -139,14 +139,14 @@ lookupProcess pid = do
       Just v  -> return v
 
 readP :: (Serialize a) => DProcess a -> IO a
-readP = do
+readP process = do
   msg <- readD process
   case msg of
     Value v -> return v
     _ -> error "unhandled control message in readP"
 
-writeP :: (Serialize a) => DProcess a -> IO a
-writeP = write process (Value value)
+writeP :: (Serialize a) => DProcess a -> a -> IO ()
+writeP process value = write process (Value value)
 
 readFrom :: (Serialize a) => PID -> Distribute a a
 readFrom pid = do
