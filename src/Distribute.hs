@@ -45,7 +45,7 @@ processes :: Registry a -> IO [Process (DistributeMessage a)]
 processes (Registry ref) = do
     m <- readIORef ref
     return $ M.elems m
-  
+
 type Distribute a = S.StateT (PID, Registry a) IO
 
 data DistributeMessage a = Value a
@@ -138,18 +138,25 @@ lookupProcess pid = do
       Nothing -> error "attempting to send to nonexistant process"
       Just v  -> return v
 
+readP :: (Serialize a) => DProcess a -> IO a
+readP = do
+  msg <- readD process
+  case msg of
+    Value v -> return v
+    _ -> error "unhandled control message in readP"
+
+writeP :: (Serialize a) => DProcess a -> IO a
+writeP = write process (Value value)
+
 readFrom :: (Serialize a) => PID -> Distribute a a
 readFrom pid = do
   process <- lookupProcess pid
-  msg <- lift $ readD process
-  case msg of
-    Value v -> return v
-    _ -> error "unhandled control message in readFrom"
+  lift $ readP process
 
 sendTo :: (Serialize a) => PID -> a -> Distribute a ()
 sendTo pid value = do
   process <- lookupProcess pid
-  lift $ write process (Value value)
+  lift $ writeP process value
 
 open :: Serialize a => String -> Int -> Distribute a (DProcess a)
 open host port = do
