@@ -20,7 +20,7 @@ import Debug.Trace
 
 import qualified Data.ByteString as B
 
-import Control.Monad.Trans.State as S
+import Control.Monad.Trans.State.Strict as S
 main = defaultMain properties
 
 properties :: TestTree

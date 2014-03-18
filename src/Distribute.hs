@@ -30,8 +30,8 @@ type PID = Int
 data Location = Local | Remote
               deriving (Eq, Show)
 
-data Process a = Process { _readPipe :: !(IORef (Producer a IO ()))
-                         , _writePipe :: !(IORef (Consumer a IO ()))
+data Process a = Process { _readPipe :: !(MVar (Producer a IO ()))
+                         , _writePipe :: !(MVar (Consumer a IO ()))
                          }
 
 instance Show (Process a) where
@@ -88,17 +88,18 @@ decodePipe = await >>= decodeElem
 
 write :: (Serialize a) => Process a -> a -> IO ()
 write (Process _ writePipeRef) v = do
-    writePipe <- readIORef writePipeRef
-    runEffect $ (Pipes.yield v) >-> writePipe
+    writePipe <- takeMVar writePipeRef
+    result <- runEffect $ (Pipes.yield v) >-> writePipe
+    putMVar writePipeRef writePipe
 
 readD :: (Serialize a) => Process a -> IO a
-readD (Process readPipeRef _) = do
-  readPipe <- readIORef readPipeRef
+readD (Process readPipeVar _) = do
+  readPipe <- takeMVar readPipeVar
   value <- next readPipe
   case value of
     Left _ -> error "Failure attempting to readD from pipe."
     Right (r, pipe') -> do
-      writeIORef readPipeRef pipe'
+      putMVar readPipeVar pipe'
       return r
 
 -- "node://domain:port"
@@ -107,8 +108,8 @@ simpleNameParser s = Right ("localhost", fromIntegral 3000)
 
 mkProcess :: (Serialize a) => N.Socket -> IO (Process a)
 mkProcess sock = do
-    readP <- newIORef $ PN.fromSocket sock 4096 >-> decodePipe
-    writeP <- newIORef $ encodePipe >-> PN.toSocket sock
+    readP <- newMVar $ PN.fromSocket sock 4096 >-> decodePipe
+    writeP <- newMVar $ encodePipe >-> PN.toSocket sock
     return $ Process readP writeP
 
 start :: (Serialize a) => Int -> (DProcess a -> IO ()) -> Distribute a ()
