@@ -37,7 +37,7 @@ data Process a = Process { _readPipe :: !(IORef (Producer a IO ()))
 instance Show (Process a) where
     show p  = "<process>"
 
-data Registry a = Registry (MVar (M.Map Int (Process (DistributeMessage a))))
+data Registry a = Registry !(MVar (M.Map Int (Process (DistributeMessage a))))
 
 {- As a lens? processes :: Lens' (Registry a) (Process (DistributeMessage a))
 processes f (Registry ) -}
@@ -49,8 +49,8 @@ processes (Registry mvar) = do
 
 type Distribute a = S.StateT (PID, Registry a) IO
 
-data DistributeMessage a = Value a
-                         | Id Int
+data DistributeMessage a = Value !a
+                         | Id !Int
                          deriving (Eq, Show)
 
 instance Serialize a => Serialize (DistributeMessage a) where
