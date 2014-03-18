@@ -24,7 +24,7 @@ import qualified Network.Socket as NS
 import Debug.Trace
 import qualified Data.Map as M
 
-import qualified Control.Monad.Trans.State as S
+import qualified Control.Monad.Trans.State.Strict as S
 
 type PID = Int
 data Location = Local | Remote
@@ -115,9 +115,9 @@ start :: (Serialize a) => Int -> (DProcess a -> IO ()) -> Distribute a ()
 start port handler = do
     registry <- S.get
     sock <- lift $ N.listenOn (N.PortNumber $ fromIntegral port)
-    lift $ forkIO $ do
+    lift $ forkIO $ forever $ do
       (s, _) <- NS.accept sock
-      mkProcess s >>= handler
+      forkIO $ mkProcess s >>= handler
     return ()
 
 registerProcess :: (Serialize a) => PID -> DProcess a -> Distribute a ()
@@ -187,7 +187,11 @@ registerIncoming (pid, Registry ref) p = do
   msg <- readD p
   case msg of
     Id i -> do
+      old <- readMVar ref
+      putStrLn (show old)
       modifyMVar_ ref (return . M.insert i p)
+      new <- readMVar ref
+      putStrLn (show new)
       write p (Id pid)
       return ()
     _ -> error "expected control message found something else"
