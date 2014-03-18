@@ -198,3 +198,6 @@ broadcast v = do
 
 receiveAll :: (Serialize a) => Distribute a [a]
 receiveAll = undefined
+
+runDistribute :: (Serialize a) => (PID, Registry a) -> Distribute a b -> IO b
+runDistribute st m = S.evalStateT m st
