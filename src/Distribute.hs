@@ -134,10 +134,10 @@ emptyRegistry = do
 lookupProcess :: (Serialize a) => PID -> Distribute a (DProcess a)
 lookupProcess pid = do
     (_, Registry ref) <- S.get
-    pmap <- lift $ readMVar ref
-    case M.lookup pid pmap of
-      Nothing -> error "attempting to send to nonexistant process"
-      Just v  -> return v
+    lift $ withMVar ref $ \pmap -> do
+      case M.lookup pid pmap of
+        Nothing -> error "attempting to send to nonexistant process"
+        Just v  -> return v
 
 readP :: (Serialize a) => DProcess a -> IO a
 readP process = do
