@@ -135,6 +135,8 @@ lookupProcess :: (Serialize a) => PID -> Distribute a (DProcess a)
 lookupProcess pid = do
     (_, Registry ref) <- S.get
     lift $ withMVar ref $ \pmap -> do
+      putStrLn ("Sending to: " ++ (show pid))
+      putStrLn ("With registry: " ++ (show $ M.keys pmap))
       case M.lookup pid pmap of
         Nothing -> error "attempting to send to nonexistant process"
         Just v  -> return v
