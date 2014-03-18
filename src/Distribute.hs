@@ -17,6 +17,7 @@ import System.IO
 import Data.IORef
 import Data.Functor
 import Control.Concurrent
+import Control.Concurrent.MVar
 import qualified Network as N
 import qualified Network.Socket as NS
 
@@ -36,14 +37,14 @@ data Process a = Process { _readPipe :: !(IORef (Producer a IO ()))
 instance Show (Process a) where
     show p  = "<process>"
 
-data Registry a = Registry (IORef (M.Map Int (Process (DistributeMessage a))))
+data Registry a = Registry (MVar (M.Map Int (Process (DistributeMessage a))))
 
 {- As a lens? processes :: Lens' (Registry a) (Process (DistributeMessage a))
 processes f (Registry ) -}
 
 processes :: Registry a -> IO [Process (DistributeMessage a)]
-processes (Registry ref) = do
-    m <- readIORef ref
+processes (Registry mvar) = do
+    m <- readMVar mvar
     return $ M.elems m
 
 type Distribute a = S.StateT (PID, Registry a) IO
@@ -122,18 +123,18 @@ start port handler = do
 registerProcess :: (Serialize a) => PID -> DProcess a -> Distribute a ()
 registerProcess pid process = do
     (_, Registry ref) <- S.get
-    lift $ modifyIORef ref (M.insert pid process)
+    lift $ modifyMVar_ ref (return . M.insert pid process)
     return ()
 
 emptyRegistry :: (Serialize a) => IO (Registry a)
 emptyRegistry = do
-    ref <- newIORef M.empty
+    ref <- newMVar M.empty
     return $ Registry ref
 
 lookupProcess :: (Serialize a) => PID -> Distribute a (DProcess a)
 lookupProcess pid = do
     (_, Registry ref) <- S.get
-    pmap <- lift $ readIORef ref
+    pmap <- lift $ readMVar ref
     case M.lookup pid pmap of
       Nothing -> error "attempting to send to nonexistant process"
       Just v  -> return v
@@ -184,7 +185,7 @@ registerIncoming (pid, Registry ref) p = do
   msg <- readD p
   case msg of
     Id i -> do
-      modifyIORef ref (M.insert i p)
+      modifyMVar_ ref (return . M.insert i p)
       write p (Id pid)
       return ()
     _ -> error "expected control message found something else"
@@ -192,7 +193,7 @@ registerIncoming (pid, Registry ref) p = do
 broadcast :: (Serialize a) => a -> Distribute a ()
 broadcast v = do
     (_, Registry ref) <- S.get
-    reg <- lift $ readIORef ref
+    reg <- lift $ readMVar ref
     lift $ mapM_ sendEach (M.elems reg)
   where sendEach p = write p (Value v)
 
