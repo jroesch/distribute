@@ -171,15 +171,17 @@ sendTo pid value = do
 open :: Serialize a => String -> Int -> Distribute a (DProcess a)
 open host port = do
     (sock, _) <- PN.connectSock host (show port)
-    process <- lift $ mkProcess sock
-    (pid, _) <- S.get
-    -- ordering is important here!
-    lift $ write process (Id pid)
-    msg <- lift $ readD process
-    case msg of
-      Id remoteId -> registerProcess remoteId process
-      _ -> error "expected control message but found something else"
-    return process
+    onException (do
+      process <- lift $ mkProcess sock
+      (pid, _) <- S.get
+      -- ordering is important here!
+      lift $ write process (Id pid)
+      msg <- lift $ readD process
+      case msg of
+        Id remoteId -> registerProcess remoteId process
+        _ -> error "expected control message but found something else"
+      return process)
+      PN.closeSock sock
 
 localState :: Monad m => s -> S.StateT s m a -> S.StateT s m a
 localState s action = do
