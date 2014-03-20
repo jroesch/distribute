@@ -141,8 +141,8 @@ lookupProcess :: (Serialize a) => PID -> Distribute a (DProcess a)
 lookupProcess pid = do
     (_, Registry ref) <- S.get
     lift $ withMVar ref $ \pmap -> do
-      putStrLn ("Sending to: " ++ (show pid))
-      putStrLn ("With registry: " ++ (show $ M.keys pmap))
+      -- putStrLn ("Sending to: " ++ (show pid))
+      -- putStrLn ("With registry: " ++ (show $ M.keys pmap))
       case M.lookup pid pmap of
         Nothing -> error "attempting to send to nonexistant process"
         Just v  -> return v
@@ -195,10 +195,10 @@ registerIncoming (pid, Registry ref) p = do
   case msg of
     Id i -> do
       old <- readMVar ref
-      putStrLn (show old)
+      -- putStrLn (show old)
       modifyMVar_ ref (return . M.insert i p)
       new <- readMVar ref
-      putStrLn (show new)
+      -- putStrLn (show new)
       write p (Id pid)
       return ()
     _ -> error "expected control message found something else"
