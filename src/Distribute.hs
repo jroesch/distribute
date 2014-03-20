@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, RankNTypes, BangPatterns #-}
 module Distribute where
 
 import Data.ByteString (ByteString)
@@ -37,7 +37,7 @@ data Process a = Process { _readPipe :: !(MVar (Producer a IO ()))
 instance Show (Process a) where
     show p  = "<process>"
 
-data Registry a = Registry !(MVar (M.Map Int (Process (DistributeMessage a))))
+data Registry a = Registry !(MVar (M.Map PID (Process (DistributeMessage a))))
 
 {- As a lens? processes :: Lens' (Registry a) (Process (DistributeMessage a))
 processes f (Registry ) -}
@@ -46,6 +46,11 @@ processes :: Registry a -> IO [Process (DistributeMessage a)]
 processes (Registry mvar) = do
     m <- readMVar mvar
     return $ M.elems m
+
+processes' :: Registry a -> IO [(PID, Process (DistributeMessage a))]
+processes' (Registry mvar) = do
+    m <- readMVar mvar
+    return $ M.assocs m
 
 type Distribute a = S.StateT (PID, Registry a) IO
 
@@ -89,7 +94,7 @@ decodePipe = await >>= decodeElem
 write :: (Serialize a) => Process a -> a -> IO ()
 write (Process _ writePipeRef) v = do
     writePipe <- takeMVar writePipeRef
-    result <- runEffect $ (Pipes.yield v) >-> writePipe
+    !result <- runEffect $ (Pipes.yield v) >-> writePipe
     putMVar writePipeRef writePipe
 
 readD :: (Serialize a) => Process a -> IO a
@@ -150,7 +155,8 @@ readP process = do
     _ -> error "unhandled control message in readP"
 
 writeP :: (Serialize a) => DProcess a -> a -> IO ()
-writeP process value = write process (Value value)
+writeP process value = do
+    write process (Value value)
 
 readFrom :: (Serialize a) => PID -> Distribute a a
 readFrom pid = do
