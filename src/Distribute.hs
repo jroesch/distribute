@@ -184,7 +184,7 @@ open host port = do
         Id remoteId -> registerProcess remoteId process
         _ -> error "expected control message but found something else"
       return process)
-      PS.closeSock sock
+      (PS.closeSock sock)
 
 localState :: Monad m => s -> S.StateT s m a -> S.StateT s m a
 localState s action = do
