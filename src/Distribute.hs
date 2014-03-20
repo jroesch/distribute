@@ -26,6 +26,8 @@ import qualified Data.Map as M
 
 import qualified Control.Monad.Trans.State.Strict as S
 
+import Control.Monad.Catch
+
 type PID = Int
 data Location = Local | Remote
               deriving (Eq, Show)
