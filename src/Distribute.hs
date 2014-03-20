@@ -8,6 +8,7 @@ import qualified Pipes
 import qualified Pipes.Prelude as P
 import qualified Pipes.ByteString as PB
 import qualified Pipes.Network.TCP as PN
+import qualified Network.Simple.TCP as PS
 import qualified Data.Serialize as Cereal
 import Data.Serialize (Serialize(..))
 import Control.Monad
@@ -183,7 +184,7 @@ open host port = do
         Id remoteId -> registerProcess remoteId process
         _ -> error "expected control message but found something else"
       return process)
-      PN.closeSock sock
+      PS.closeSock sock
 
 localState :: Monad m => s -> S.StateT s m a -> S.StateT s m a
 localState s action = do
