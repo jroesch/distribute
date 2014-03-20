@@ -147,7 +147,7 @@ lookupProcess pid = do
       -- putStrLn ("Sending to: " ++ (show pid))
       -- putStrLn ("With registry: " ++ (show $ M.keys pmap))
       case M.lookup pid pmap of
-        Nothing -> error "attempting to send to nonexistant process: " ++ show pid
+        Nothing -> error $ "attempting to send to nonexistant process: " ++ show pid
         Just v  -> return v
 
 readP :: (Serialize a) => DProcess a -> IO a
